@@ -16,10 +16,11 @@ Use this skill when a feature became hard to read because routing logic, side ef
 
 ## When to Trigger
 
-- "핸들러 분리해줘"
-- "slice로 관심사 분리해줘"
-- "조건문 많아서 읽기 힘들다"
-- "eventId/responseId 의미가 안 보인다"
+- "Split this into handlers."
+- "Separate this into concern-based slices."
+- "This function has too many conditions and is hard to read."
+- "eventId/responseId intent is unclear."
+- "Refactor for readability without changing behavior."
 
 ## Refactor Rules
 
