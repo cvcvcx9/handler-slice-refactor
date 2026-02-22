@@ -33,13 +33,13 @@ Typical requests:
 Global:
 
 ```bash
-npx skills add <owner>/<repo> --skill handler-slice-refactor -g -y
+npx skills add cvcvcx9/handler-slice-refactor --skill handler-slice-refactor -g -y
 ```
 
 Project-level:
 
 ```bash
-npx skills add <owner>/<repo> --skill handler-slice-refactor -y
+npx skills add cvcvcx9/handler-slice-refactor --skill handler-slice-refactor -y
 ```
 
 ## Files
