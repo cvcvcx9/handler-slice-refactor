@@ -51,3 +51,65 @@ npx skills add cvcvcx9/handler-slice-refactor --skill handler-slice-refactor -y
 
 - Before: single file handles routing + metadata resolution + side effects + state mutation
 - After: router delegates to small handlers, and state is split into clear slices
+Before:
+```text
+components/voip-v2-test/
+  handlers/realtime-event-handler.ts
+  slices/session-slice.ts      # session + hint + normalization mixed
+  store.ts
+  types.ts
+```
+After:
+```text
+components/voip-v2-test/
+  handlers/
+    realtime-event-handler.ts
+    realtime-transcription-handler.ts
+    realtime-purpose-handler.ts
+    realtime-enrichment-handler.ts
+    hint-request-handler.ts
+  slices/
+    session-slice.ts
+    hint-slice.ts
+    assistant-analysis-slice.ts
+    realtime-slice.ts
+    log-slice.ts
+  ui/
+    HintSection.tsx
+    AssistantAnalysisSection.tsx
+  store.ts
+  types.ts
+```
+## Before / After (Code)
+Before:
+```typescript
+if (event.type === "response.created") {
+  // id extraction + purpose resolution + mutation + logging
+}
+if (event.type === "response.done") {
+  // fallback metadata + side effects + fsm event
+}
+```
+After:
+```typescript
+switch (event.type) {
+  case "response.created":
+    handleResponseCreatedEvent({ event, setState, getState, addLog });
+    return;
+  case "response.done":
+    handleResponseDoneEvent({ event, setState, getState, addLog });
+    return;
+}
+```
+Before:
+```typescript
+// session-slice.ts
+// session lifecycle + hint payload builder + api request + normalization
+```
+After:
+```typescript
+// session-slice.ts
+// session lifecycle only
+// hint-slice.ts
+// hint payload + api request + normalization + loading/error state
+```
