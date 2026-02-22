@@ -1,6 +1,6 @@
 ---
 name: handler-slice-refactor
-description: A simple, behavior-safe solution for complex event/state code: split event and side-effect logic into focused handlers and separate Zustand state into clear concern-based slices.
+description: "A simple, behavior-safe solution for complex event/state code: split event and side-effect logic into focused handlers and separate Zustand state into clear concern-based slices."
 ---
 
 # Handler + Slice Refactor
