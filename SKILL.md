@@ -1,53 +1,161 @@
-# handler-slice-refactor
+---
+name: handler-slice-refactor
+description: A simple, behavior-safe solution for complex event/state code: split event and side-effect logic into focused handlers and separate Zustand state into clear concern-based slices.
+---
 
-A simple, behavior-safe skill for improving readability in complex frontend event and state logic.
+# Handler + Slice Refactor
 
-It helps split:
+Use this skill when a feature became hard to read because routing logic, side effects, API calls, and state transitions are mixed in one place. It provides a simple path to improve readability without changing runtime behavior.
 
-- mixed event flows into focused handlers
-- mixed Zustand state into concern-based slices
+## Goals
 
-without changing runtime behavior.
+- Keep behavior the same while making intent obvious
+- Separate orchestration from business logic
+- Separate Zustand state by concern (session, realtime, hints, analysis, logs)
+- Keep verification strict (`lsp_diagnostics` + lint + build)
 
-## When to use
+## When to Trigger
 
-Use this skill when code is hard to follow because event routing, side effects, API calls, and state updates are mixed in one place.
+- "핸들러 분리해줘"
+- "slice로 관심사 분리해줘"
+- "조건문 많아서 읽기 힘들다"
+- "eventId/responseId 의미가 안 보인다"
 
-Typical requests:
+## Refactor Rules
 
-- "split handlers"
-- "separate slices by concern"
-- "too many conditions in one function"
-- "eventId/responseId intent is unclear"
+### 1) Event Handler Rules
 
-## What it standardizes
+- Keep top-level handler as router/orchestrator only
+- Prefer `switch(event.type)` over long `if` chains
+- Extract tiny helpers with intent-revealing names:
+  - `getResponseId(...)`
+  - `resolvePurposeMeta(...)`
+  - `applyPendingBootstrapActions(...)`
+- Isolate side-effects into dedicated handlers:
+  - enrichment request handler
+  - hint request handler
+  - session end handler
 
-- Event orchestration with `switch(event.type)`
-- Intent-first helper naming (`getResponseId`, `resolvePurposeMeta`, etc.)
-- Side-effect handlers (`enrichment`, `hint request`, `session end`)
-- Concern-based slices (`session`, `realtime`, `hint`, `analysis`, `log`)
-- Verification flow (`lsp_diagnostics`, lint, build)
+### 2) Zustand Slice Rules
 
-## Install
+- One slice = one concern
+- Put API payload shaping + response normalization in the same concern slice
+- Keep `store.ts` composition explicit (`createXSlice`)
+- Keep `types.ts` interfaces aligned with slice boundaries
 
-Global:
+### 3) Naming Rules
 
-```bash
-npx skills add <owner>/<repo> --skill handler-slice-refactor -g -y
+- Avoid vague names (`id`, `data`, `temp`)
+- Use semantic names:
+  - `createdResponseId`, `completedResponseId`, `correlationEventId`
+  - `lastHintRequestKey`, `requestPurposeByEventId`
+- Use action-like function names for side effects:
+  - `triggerHintRequestForAssistantUtterance`
+  - `requestAssistantEnrichment`
+
+## Before / After Examples
+
+### Handler Split
+
+Before:
+
+```typescript
+if (event.type === "response.created") {
+  // id extraction + purpose resolution + map mutation + log
+}
+if (event.type === "response.done") {
+  // metadata fallback + side effects + fsm event
+}
 ```
 
-Project-level:
+After:
 
-```bash
-npx skills add <owner>/<repo> --skill handler-slice-refactor -y
+```typescript
+switch (event.type) {
+  case "response.created":
+    handleResponseCreatedEvent({ event, setState, getState, addLog });
+    return;
+  case "response.done":
+    handleResponseDoneEvent({ event, setState, getState, addLog });
+    return;
+}
 ```
 
-## Files
+### Slice Split
 
-- `SKILL.md`: main skill definition and workflow
-- `README.md`: quick summary and usage context
+Before:
 
-## Before / After focus
+```typescript
+// session-slice.ts
+// session state + hint request payload + hint response normalize + hint ui state
+```
 
-- Before: single file handles routing + metadata resolution + side effects + state mutation
-- After: router delegates to small handlers, and state is split into clear slices
+After:
+
+```typescript
+// session-slice.ts
+// session lifecycle only
+
+// hint-slice.ts
+// hint request/normalize/loading/error state only
+```
+
+### Directory Structure
+
+Before:
+
+```text
+components/voip-v2-test/
+  handlers/realtime-event-handler.ts
+  slices/session-slice.ts        # session + hint + normalization mixed
+  store.ts
+  types.ts
+```
+
+After:
+
+```text
+components/voip-v2-test/
+  handlers/
+    realtime-event-handler.ts
+    realtime-transcription-handler.ts
+    realtime-purpose-handler.ts
+    realtime-enrichment-handler.ts
+    hint-request-handler.ts
+  slices/
+    session-slice.ts
+    hint-slice.ts
+    assistant-analysis-slice.ts
+    realtime-slice.ts
+    log-slice.ts
+  ui/
+    HintSection.tsx
+    AssistantAnalysisSection.tsx
+  store.ts
+  types.ts
+```
+
+## Execution Checklist
+
+1. Map current flow (`grep` + `read`) and find mixed responsibilities.
+2. Extract handlers first (no behavior change).
+3. Extract slice(s) by concern (no behavior change).
+4. Rewire store selectors and UI wiring.
+5. Ensure duplicate side-effects are deduped with key-based guards.
+6. Validate:
+   - `lsp_diagnostics` on modified files
+   - `yarn lint`
+   - `yarn build`
+
+## Anti-Patterns
+
+- Moving logic without preserving call timing (event order regressions)
+- Duplicating the same side effect in both transcript and response-done paths
+- Keeping request payload/normalize logic scattered across handlers and slices
+- Introducing broad rewrites unrelated to target concern
+
+## Output Contract
+
+- Report: what was split, where, and why
+- Include file paths for handlers/slices/types/store wiring
+- Include verification results (diagnostics/lint/build)
