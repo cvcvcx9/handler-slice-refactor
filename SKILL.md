@@ -1,79 +1,53 @@
----
-name: handler-slice-refactor
-description: Refactor feature code by splitting event/side-effect logic into focused handlers and separating Zustand state into concern-based slices while preserving runtime behavior. Use for requests like "핸들러 분리", "slice 분리", "가독성 개선", "관심사 분리".
----
+# handler-slice-refactor
 
-# Handler + Slice Refactor
+A simple, behavior-safe skill for improving readability in complex frontend event and state logic.
 
-Use this skill when a feature became hard to read because routing logic, side effects, API calls, and state transitions are mixed in one place.
+It helps split:
 
-## Goals
+- mixed event flows into focused handlers
+- mixed Zustand state into concern-based slices
 
-- Keep behavior the same while making intent obvious
-- Separate orchestration from business logic
-- Separate Zustand state by concern (session, realtime, hints, analysis, logs)
-- Keep verification strict (`lsp_diagnostics` + lint + build)
+without changing runtime behavior.
 
-## When to Trigger
+## When to use
 
-- "핸들러 분리해줘"
-- "slice로 관심사 분리해줘"
-- "조건문 많아서 읽기 힘들다"
-- "eventId/responseId 의미가 안 보인다"
+Use this skill when code is hard to follow because event routing, side effects, API calls, and state updates are mixed in one place.
 
-## Refactor Rules
+Typical requests:
 
-### 1) Event Handler Rules
+- "split handlers"
+- "separate slices by concern"
+- "too many conditions in one function"
+- "eventId/responseId intent is unclear"
 
-- Keep top-level handler as router/orchestrator only
-- Prefer `switch(event.type)` over long `if` chains
-- Extract tiny helpers with intent-revealing names:
-  - `getResponseId(...)`
-  - `resolvePurposeMeta(...)`
-  - `applyPendingBootstrapActions(...)`
-- Isolate side-effects into dedicated handlers:
-  - enrichment request handler
-  - hint request handler
-  - session end handler
+## What it standardizes
 
-### 2) Zustand Slice Rules
+- Event orchestration with `switch(event.type)`
+- Intent-first helper naming (`getResponseId`, `resolvePurposeMeta`, etc.)
+- Side-effect handlers (`enrichment`, `hint request`, `session end`)
+- Concern-based slices (`session`, `realtime`, `hint`, `analysis`, `log`)
+- Verification flow (`lsp_diagnostics`, lint, build)
 
-- One slice = one concern
-- Put API payload shaping + response normalization in the same concern slice
-- Keep `store.ts` composition explicit (`createXSlice`)
-- Keep `types.ts` interfaces aligned with slice boundaries
+## Install
 
-### 3) Naming Rules
+Global:
 
-- Avoid vague names (`id`, `data`, `temp`)
-- Use semantic names:
-  - `createdResponseId`, `completedResponseId`, `correlationEventId`
-  - `lastHintRequestKey`, `requestPurposeByEventId`
-- Use action-like function names for side effects:
-  - `triggerHintRequestForAssistantUtterance`
-  - `requestAssistantEnrichment`
+```bash
+npx skills add <owner>/<repo> --skill handler-slice-refactor -g -y
+```
 
-## Execution Checklist
+Project-level:
 
-1. Map current flow (`grep` + `read`) and find mixed responsibilities.
-2. Extract handlers first (no behavior change).
-3. Extract slice(s) by concern (no behavior change).
-4. Rewire store selectors and UI wiring.
-5. Ensure duplicate side-effects are deduped with key-based guards.
-6. Validate:
-   - `lsp_diagnostics` on modified files
-   - `yarn lint`
-   - `yarn build`
+```bash
+npx skills add <owner>/<repo> --skill handler-slice-refactor -y
+```
 
-## Anti-Patterns
+## Files
 
-- Moving logic without preserving call timing (event order regressions)
-- Duplicating the same side effect in both transcript and response-done paths
-- Keeping request payload/normalize logic scattered across handlers and slices
-- Introducing broad rewrites unrelated to target concern
+- `SKILL.md`: main skill definition and workflow
+- `README.md`: quick summary and usage context
 
-## Output Contract
+## Before / After focus
 
-- Report: what was split, where, and why
-- Include file paths for handlers/slices/types/store wiring
-- Include verification results (diagnostics/lint/build)
+- Before: single file handles routing + metadata resolution + side effects + state mutation
+- After: router delegates to small handlers, and state is split into clear slices
